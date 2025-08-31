@@ -672,115 +672,39 @@ require('lazy').setup({
       --  - filetypes (table): Override the default list of associated filetypes for the server
       --  - capabilities (table): Override fields in capabilities. Can be used to disable certain LSP features.
       --  - settings (table): Override the default settings passed when initializing the server.
-      --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
-      local servers = {
-        -- TypeScript/JavaScript 服务器 (使用 vtsls)
-        vtsls = {
-          capabilities = capabilities,
-          filetypes = { 'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue' },
-          single_file_support = true,
-        },
-
-        -- Vue 语言服务器 (Vue Language Server)
-        vue_ls = {
-          capabilities = capabilities,
-          filetypes = { 'vue' },
-          init_options = {
-            typescript = {
-              tsdk = vim.fn.stdpath 'data' .. '/mason/packages/vtsls/node_modules/@vtsls/language-server/node_modules/typescript/lib',
-            },
-          },
-          on_new_config = function(new_config, new_root_dir)
-            -- 尝试使用项目本地的 TypeScript，如果不存在则使用 vtsls 的
-            local local_tsdk = new_root_dir .. '/node_modules/typescript/lib'
-            local vtsls_tsdk = vim.fn.stdpath 'data' .. '/mason/packages/vtsls/node_modules/@vtsls/language-server/node_modules/typescript/lib'
-            
-            new_config.init_options = new_config.init_options or {}
-            new_config.init_options.typescript = new_config.init_options.typescript or {}
-            
-            if vim.fn.isdirectory(local_tsdk) == 1 then
-              new_config.init_options.typescript.tsdk = local_tsdk
-            elseif vim.fn.isdirectory(vtsls_tsdk) == 1 then
-              new_config.init_options.typescript.tsdk = vtsls_tsdk
-            end
-          end,
-        },
-
-        -- HTML 语言服务器
-        html = {
-          capabilities = capabilities,
-        },
-
-        -- CSS 语言服务器
-        cssls = {
-          capabilities = capabilities,
-        },
-
-        -- JSON 语言服务器
-        jsonls = {
-          capabilities = capabilities,
-        },
-
-        -- Lua 语言服务器
-        lua_ls = {
-          capabilities = capabilities,
-          settings = {
-            Lua = {
-              completion = {
-                callSnippet = 'Replace',
-              },
-              diagnostics = {
-                globals = { 'vim' },
-              },
-            },
-          },
-        },
-      }
-
-      -- Ensure the servers and tools above are installed
-      --
-      -- To check the current status of installed tools and/or manually install
-      -- other tools, you can run
-      --    :Mason
-      --
-      -- You can press `g?` for help in this menu.
-      --
-      -- `mason` had to be setup earlier: to configure its options see the
-      -- `dependencies` table for `nvim-lspconfig` above.
-      --
-      -- You can add other tools here that you want Mason to install
-      -- for you, so that they are available from within Neovim.
-      local ensure_installed = vim.tbl_keys(servers or {})
-      vim.list_extend(ensure_installed, {
-        'stylua', -- Used to format Lua code
-      })
-      require('mason-tool-installer').setup { 
+      -- Mason setup
+      require('mason-tool-installer').setup {
         ensure_installed = {
-          'vtsls', 
+          'typescript-language-server',
+          'vue-language-server',
+          'json-lsp',
+          'html-lsp',
+          'css-lsp',
+          'lua-language-server',
           'stylua'
-        }
+        },
+        run_on_start = true,
       }
 
-      require('mason-lspconfig').setup {
-        ensure_installed = {
-          'vue_ls',
-          'vtsls',
-          'html',
-          'cssls',
-          'jsonls',
-          'lua_ls',
+      -- 直接配置 LSP 服务器，不使用 mason-lspconfig 的 handlers
+      -- 只让 volar 处理 .vue；ts/js 交给 ts_ls
+      require('lspconfig').ts_ls.setup { capabilities = capabilities }
+      require('lspconfig').volar.setup {
+        capabilities = capabilities,
+        filetypes = { 'vue' },
+        init_options = {
+          typescript = {
+            tsdk = vim.fn.stdpath('data')
+              .. '/mason/packages/typescript-language-server/node_modules/typescript/lib',
+          },
         },
-        automatic_installation = false,
-        handlers = {
-          function(server_name)
-            local server = servers[server_name] or {}
-            -- This handles overriding only values explicitly passed
-            -- by the server configuration above. Useful when disabling
-            -- certain features of an LSP (for example, turning off formatting for ts_ls)
-            server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            require('lspconfig')[server_name].setup(server)
-          end,
-        },
+      }
+      require('lspconfig').jsonls.setup { capabilities = capabilities }
+      require('lspconfig').html.setup { capabilities = capabilities }
+      require('lspconfig').cssls.setup { capabilities = capabilities }
+      require('lspconfig').lua_ls.setup {
+        capabilities = capabilities,
+        settings = { Lua = { diagnostics = { globals = { 'vim' } } } },
       }
     end,
   },
