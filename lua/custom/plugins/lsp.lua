@@ -181,12 +181,17 @@ return {
     require('mason').setup()
     require('mason-tool-installer').setup {
       ensure_installed = {
+        'lua-language-server',
         'typescript-language-server',
         'vue-language-server',
+        'prisma-language-server',
         'json-lsp',
         'html-lsp',
         'css-lsp',
-        'lua-language-server',
+        'prettierd',
+        'prettier',
+        'eslint_d',
+        'stylua',
       },
       run_on_start = true,
     }
@@ -239,7 +244,6 @@ return {
         },
       },
     }
-
     -- 确保 Emmet 在 Vue 文件中正确工作
     vim.api.nvim_create_autocmd("FileType", {
       pattern = "vue",
@@ -260,5 +264,10 @@ return {
         end, 100)
       end,
     })
+
+    -- Prisma LSP
+    require('lspconfig').prismals.setup {
+      capabilities = capabilities,
+    }
   end,
 }
