@@ -211,5 +211,54 @@ return {
       capabilities = capabilities,
       settings = { Lua = { diagnostics = { globals = { 'vim' } } } },
     }
+
+    -- Emmet：在模板里给 div/span/ul/li 等标签速写
+    require('lspconfig').emmet_language_server.setup {
+      capabilities = capabilities,
+      filetypes = {
+        'html', 'css', 'scss', 'sass', 'less',
+        'vue', 'javascriptreact', 'typescriptreact',
+        'astro', 'svelte', 'heex', 'eex',
+      },
+      init_options = {
+        showexpandedabbreviation = 'always',
+        showabbreviationsuggestions = true,
+        showdocs = false,
+        -- 确保在 Vue 文件中启用 Emmet
+        includeLanguages = {
+          vue = 'html',
+          ['vue-html'] = 'html',
+        },
+      },
+      settings = {
+        emmet = {
+          includeLanguages = {
+            vue = 'html',
+            ['vue-html'] = 'html',
+          },
+        },
+      },
+    }
+
+    -- 确保 Emmet 在 Vue 文件中正确工作
+    vim.api.nvim_create_autocmd("FileType", {
+      pattern = "vue",
+      callback = function(args)
+        -- 手动触发 Emmet LSP 附加
+        vim.defer_fn(function()
+          local clients = vim.lsp.get_clients({ bufnr = args.buf })
+          local emmet_attached = false
+          for _, client in ipairs(clients) do
+            if client.name == "emmet_language_server" then
+              emmet_attached = true
+              break
+            end
+          end
+          if not emmet_attached then
+            vim.cmd("LspStart emmet_language_server")
+          end
+        end, 100)
+      end,
+    })
   end,
 }
