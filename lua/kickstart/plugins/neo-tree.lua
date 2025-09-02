@@ -20,10 +20,10 @@ return {
           ['\\'] = 'close_window',
         },
       },
-    filtered_items = {
-      hide_dotfiles = false,  -- 默认显示 . 开头的文件
-      hide_gitignored = false,
-    },
+      filtered_items = {
+        hide_dotfiles = false, -- 默认显示 . 开头的文件
+        hide_gitignored = false,
+      },
     },
   },
 }
